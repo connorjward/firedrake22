@@ -207,13 +207,57 @@
 
 \frame{\titlepage}
 
-\frame{\tableofcontents}
+% \section{Motivation}
 
-\section{Motivation}
+\begin{frame}{\pyop2}
+  \begin{itemize}
+    \item Used for stencil computations
+    \item Handles all the mesh data structures
+    \item Firedrake applications include residual assembly and interpolation
+  \end{itemize}
+\end{frame}
 
-\begin{frame}{Stencil computations}
-  % show LHS FEM assembly pseudocode
-  % show RHS generalised stencil algorithm
+\begin{frame}{\pyop2 data model}
+  \begin{itemize}
+    \item Vector data is stored by \pyop2 \py{Dats}
+    \item These associate a fixed inner shape ($d_m$) with a set of possibly unordered nodes ($i_n$)
+    \item \py{Mixed Dats} and \py{Dats} for extruded meshes are also possible
+  \end{itemize}
+
+  \centering
+  \begin{tikzpicture}[y=-1cm,scale=.75]
+    \trianglestyles
+    \begin{scope}[yshift=0cm]
+      \fill[lightgray] (0,0) rectangle(7,1);
+      \filldraw[draw=black,vertcolor] (0.5,0) rectangle ++ (1,1);
+      \filldraw[draw=black,vertcolor] (1.5,0) rectangle ++ (1,1);
+      \filldraw[draw=black,vertcolor] (2.5,0) rectangle ++ (1,1);
+      \filldraw[draw=black,vertcolor] (3.5,0) rectangle ++ (1,1);
+      \filldraw[draw=black,vertcolor] (4.5,0) rectangle ++ (1,1);
+      \filldraw[draw=black,vertcolor] (5.5,0) rectangle ++ (1,1);
+      \node[at={(1,.5)}, ptlabel] {$i_6$};
+      \node[at={(2,.5)}, ptlabel] {$i_9$};
+      \node[at={(3,.5)}, ptlabel] {$i_0$};
+      \node[at={(4,.5)}, ptlabel] {$i_3$};
+      \node[at={(5,.5)}, ptlabel] {$i_7$};
+      \node[at={(6,.5)}, ptlabel] {$i_4$};
+      \draw (0,0) -- (7,0);
+      \draw (0,1) -- (7,1);
+    \end{scope}
+
+    \begin{scope}[yshift=-2cm]
+      \begin{scope}[xshift=2cm]
+        \filldraw[draw=black,vertcolor] (0,0) rectangle ++ (1,1);
+        \filldraw[draw=black,vertcolor] (1,0) rectangle ++ (1,1);
+        \node[at={(0.5,.5)}, ptlabel] {$d_0$};
+        \node[at={(1.5,.5)}, ptlabel] {$d_1$};
+
+        \draw (.5,-1) -- (0,0);
+        \draw (1.5,-1) -- (2,0);
+      \end{scope}
+    \end{scope}
+
+  \end{tikzpicture}
 \end{frame}
 
 \begin{frame}{Introducing \pyop3}
@@ -229,8 +273,6 @@
 
   \textbf{Features:}
 
-  \unchecked Map composition \\
-  \unchecked Nesting loops (e.g. PCPATCH) \\
   \unchecked Orientation (e.g. unstructured hexes) \\
   \unchecked p-adaptivity \\
   \unchecked Mixed meshes \\
@@ -244,9 +286,7 @@
 \end{frame}
 
 \begin{frame}
-  \begin{paragraph}{Claim:}
-    \pyop3's new data layout abstraction enables all of these. 
-  \end{paragraph}
+  Claim: \pyop3's new data layout abstraction enables all of these. 
 \end{frame}
 
 \begin{frame}[fragile]{Starting simple: P1}
@@ -455,6 +495,11 @@ root = (
     \hfill
 
     \begin{column}{.5\textwidth}
+      \checked p-adaptivity \\
+      \checked Mixed meshes
+
+      \vspace{2em}
+
       \begin{minted}[
         frame=lines,
         framesep=2mm,
@@ -523,6 +568,10 @@ root = (
     \hfill
 
     \begin{column}{.5\textwidth}
+      \checked Mesh numbering
+
+      \vspace{2em}
+
       \begin{minted}[
         frame=lines,
         framesep=2mm,
@@ -726,53 +775,54 @@ root = (
 
 \end{frame}
 
-\begin{frame}{Sparse matrices}
-  % same as ragged but change the inner indices so they miss some out
-  % also don't provide code
+\begin{frame}{Stencil library wishlist}
+
+  \textbf{Features:}
+
+  \unchecked Orientation \\
+  \checked p-adaptivity \\
+  \checked Mixed meshes \\
+
+  \textbf{Performance:}
+
+  \unchecked Mesh partial structure \\
+  \checked Mesh numbering
 \end{frame}
 
-\begin{frame}{Unoriented P3}
+\begin{frame}{Orientation: P3}
   % show canonical and flipped triangles
 
 \end{frame}
 
-\begin{frame}{Unoriented RT}
+\begin{frame}{Orientation: Raviart-Thomas}
   % show canonical and flipped triangles
 
 \end{frame}
 
-\begin{frame}{Something really crazy}
-  % multi-part, nested ragged and renumbered
-\end{frame}
-
-\section{\pyop3 interface}
-
-\begin{frame}{...}
-  % - use DMPlex terminology
-  % users create a mesh object and data structures that live on it
-\end{frame}
-
-\begin{frame}{DMPlex}
-  % - how it works (Hasse diagram)
-  % - covering relations
-  % closure = "cell and incident edges and vertices"
-\end{frame}
-
-\begin{frame}{Some examples: FE residual assembly}
+\begin{frame}{Partially-structured meshes: extruded}
 
 \end{frame}
 
-\begin{frame}{Some examples: Interior facet integrals}
+\begin{frame}{Stencil library wishlist}
+  \textbf{Features:}
 
+  \checked Orientation \\
+  \checked p-adaptivity \\
+  \checked Mixed meshes \\
+
+  \textbf{Performance:}
+
+  \checked Mesh partial structure \\
+  \checked Mesh numbering
 \end{frame}
 
-\begin{frame}{Some examples: Patches}
-
-\end{frame}
 
 \section{Final bits}
 
 \begin{frame}{Things I missed}
+  % also lets us do map and loop composition (e.g. useful for PCPATCH)
+
+  % matrices
   % works in parallel (MPI)
   % should retain existing work in PyOP2 on GPUs and inter-element vectorisation
   % lets us have structured things
@@ -787,10 +837,6 @@ root = (
 % appendix
 
 \section{Appendix}
-
-\begin{frame}{Partially-structured meshes: extruded}
-
-\end{frame}
 
 \begin{frame}{Partially-structured meshes: refined}
 
