@@ -62,7 +62,7 @@
 
 % title info
 \title{\texttt{pyop3}: A new domain-specific language for automating high-performance mesh-based simulation codes}
-\author{Connor Ward}
+\author{Connor Ward (supervised by David Ham)}
 \date{January 2023}
 
 % macros
@@ -207,19 +207,18 @@
 
 \frame{\titlepage}
 
-% \section{Motivation}
-
-\begin{frame}{\pyop2}
+\begin{frame}{What came before: \pyop2}
   \begin{itemize}
-    \item Used for stencil computations
-    \item Handles all the mesh data structures
-    \item Firedrake applications include residual assembly and interpolation
+    \item Domain-specific language embedded in Python for doing mesh computations
+    \item Uses code generation to produce fast code
+    \item Handles the data structures used by Firedrake
+    \item Used everywhere in Firedrake for things like residual assembly and interpolation
   \end{itemize}
 \end{frame}
 
 \begin{frame}{\pyop2 data model}
   \begin{itemize}
-    \item Vector data is stored by \pyop2 \py{Dats}
+    \item Data is stored by \py{Dats}\footnote{Sparse matrix support is not discussed}
     \item These associate a fixed inner shape ($d_m$) with a set of possibly unordered nodes ($i_n$)
     \item \py{Mixed Dats} and \py{Dats} for extruded meshes are also possible
   \end{itemize}
@@ -261,28 +260,29 @@
 \end{frame}
 
 \begin{frame}{Introducing \pyop3}
+  Key differences with \pyop2:
   \begin{itemize}
-    \item Domain-specific language embedded in Python for automating stencil computations
-    \item Uses code generation to produce fast code
+    \item Complete rewrite of the code generation part
+    \item New more expressive and composable interface inspired by PETSc DMPlex
+    \item \textbf{Has a new data layout model}
   \end{itemize}
-
-  % "seems straightforward, why is it so hard? -> data layouts are so diverse!"
 \end{frame}
 
-\begin{frame}{Stencil library wishlist}
-
+\begin{frame}{\pyop3 wishlist}
   \textbf{Features:}
 
-  \unchecked Orientation (e.g. unstructured hexes) \\
+  \unchecked Handle orientations (e.g. unstructured hexes) \\
   \unchecked p-adaptivity \\
   \unchecked Mixed meshes \\
 
   \textbf{Performance:}
 
-  \unchecked Mesh partial structure (e.g. extruded)\footnotemark \\
-  \unchecked Mesh numbering (e.g. DoFs up extruded columns)\footnotemark[\value{footnote}] \\
+  \unchecked Exploit mesh partial structure (e.g. extruded)\footnotemark \\
+  \unchecked Prescribe DoF ordering (e.g. extruded columns)\footnotemark[\value{footnote}] \\
 
-  \footnotetext{Achievable in \pyop2 but very complicated and hard to extend}
+  (And more\dots)
+
+  \footnotetext{Achievable in \pyop2 but difficult to use}
 \end{frame}
 
 \begin{frame}
@@ -450,7 +450,7 @@ root = (
       \centering
 
       \begin{tikzpicture}
-        \stylesegmentsone
+        \stylesegmentstwo
         \drawtriangle
 
         \filldraw [vertdof] (v0) node [doftext] {0} circle [radius=7pt];
@@ -495,8 +495,8 @@ root = (
     \hfill
 
     \begin{column}{.5\textwidth}
-      \checked p-adaptivity \\
-      \checked Mixed meshes
+      \checked p-adaptivity\footnotemark \\
+      \checked Mixed meshes\footnotemark[\value{footnote}]
 
       \vspace{2em}
 
@@ -515,6 +515,8 @@ root = (
       \end{minted}
     \end{column}
   \end{columns}
+      \footnotetext{Since topological entities are now distinguishable}
+
 \end{frame}
 
 \begin{frame}[fragile]{Now with renumbering}
@@ -568,7 +570,7 @@ root = (
     \hfill
 
     \begin{column}{.5\textwidth}
-      \checked Mesh numbering
+      \checked Prescribe DoF ordering
 
       \vspace{2em}
 
@@ -771,296 +773,789 @@ root = (
     \end{minipage}
 \end{frame}
 
-\begin{frame}{Ragged}
-
-\end{frame}
-
-\begin{frame}{Stencil library wishlist}
-
+\begin{frame}{\pyop3 wishlist}
   \textbf{Features:}
 
-  \unchecked Orientation \\
+  \unchecked Handle orientations \\
   \checked p-adaptivity \\
   \checked Mixed meshes \\
 
   \textbf{Performance:}
 
-  \unchecked Mesh partial structure \\
-  \checked Mesh numbering
+  \unchecked Exploit mesh partial structure \\
+  \checked Prescribe DoF ordering
 \end{frame}
 
 \begin{frame}{Orientation: P3}
-  % show canonical and flipped triangles
+  \centering
 
-\end{frame}
+  \begin{tikzpicture}
+    \stylesegmentsone
+    \drawtriangle
+
+      \filldraw [vertdof] (v0) node [doftext] {0} circle [radius=7pt];
+      \filldraw [vertdof] (v1) node [doftext] {1} circle [radius=7pt];
+      \filldraw [vertdof] (v2) node [doftext] {2} circle [radius=7pt];
+
+      % edge dofs
+      \tkzDefBarycentricPoint(v0=2.3,v1=1) \tkzGetPoint{e0d0}
+      \filldraw [edgedof] (e0d0) node [doftext] {7} circle [radius=7pt];
+
+      \tkzDefBarycentricPoint(v0=1,v1=2.3) \tkzGetPoint{e0d1}
+      \filldraw [edgedof] (e0d1) node [doftext] {8} circle [radius=7pt];
+
+      \tkzDefBarycentricPoint(v1=2.3,v2=1) \tkzGetPoint{e1d0}
+      \filldraw [edgedof] (e1d0) node [doftext] {3} circle [radius=7pt];
+
+      \tkzDefBarycentricPoint(v1=1,v2=2.3) \tkzGetPoint{e1d1}
+      \filldraw [edgedof] (e1d1) node [doftext] {4} circle [radius=7pt];
+
+      \tkzDefBarycentricPoint(v0=2.3,v2=1) \tkzGetPoint{e2d0}
+      \filldraw [edgedof] (e2d0) node [doftext] {5} circle [radius=7pt];
+
+      \tkzDefBarycentricPoint(v0=1,v2=2.3) \tkzGetPoint{e2d1}
+      \filldraw [edgedof] (e2d1) node [doftext] {6} circle [radius=7pt];
+
+      % cell dof
+      \tkzDefBarycentricPoint(v0=1,v1=1,v2=1) \tkzGetPoint{c0d0}
+      \filldraw [celldof] (c0d0) node [doftext] {9} circle [radius=7pt];
+
+      % flipped arrow
+      \tkzDefShiftPoint[e1d0](0,.3){e1d0l}
+      \tkzDefShiftPoint[e1d1](.3,0){e1d1l}
+      \draw [{stealth}-{stealth},draw=red,line width=1pt] (e1d0l) to [bend right=40] (e1d1l);
+
+      \node at (3.5,1) {vs};
+
+      % now flipped
+      \begin{scope}[xshift=5cm]
+        \drawflippedtriangle
+
+          \filldraw [vertdof] (v0) node [doftext] {0} circle [radius=7pt];
+          \filldraw [vertdof] (v1) node [doftext] {1} circle [radius=7pt];
+          \filldraw [vertdof] (v2) node [doftext] {2} circle [radius=7pt];
+
+          % edge dofs
+          \tkzDefBarycentricPoint(v0=2.3,v1=1) \tkzGetPoint{e0d0}
+          \filldraw [edgedof] (e0d0) node [doftext] {7} circle [radius=7pt];
+
+          \tkzDefBarycentricPoint(v0=1,v1=2.3) \tkzGetPoint{e0d1}
+          \filldraw [edgedof] (e0d1) node [doftext] {8} circle [radius=7pt];
+
+          \tkzDefBarycentricPoint(v1=2.3,v2=1) \tkzGetPoint{e1d0}
+          \filldraw [edgedof] (e1d0) node [doftext] {4} circle [radius=7pt];
+
+          \tkzDefBarycentricPoint(v1=1,v2=2.3) \tkzGetPoint{e1d1}
+          \filldraw [edgedof] (e1d1) node [doftext] {3} circle [radius=7pt];
+
+          \tkzDefBarycentricPoint(v0=2.3,v2=1) \tkzGetPoint{e2d0}
+          \filldraw [edgedof] (e2d0) node [doftext] {5} circle [radius=7pt];
+
+          \tkzDefBarycentricPoint(v0=1,v2=2.3) \tkzGetPoint{e2d1}
+          \filldraw [edgedof] (e2d1) node [doftext] {6} circle [radius=7pt];
+
+          % cell dof
+          \tkzDefBarycentricPoint(v0=1,v1=1,v2=1) \tkzGetPoint{c0d0}
+          \filldraw [celldof] (c0d0) node [doftext] {9} circle [radius=7pt];
+        \end{scope}
+      \end{tikzpicture}
+
+      \vspace{2em}
+
+      \centering
+      \begin{tikzpicture}[y=-1cm,scale=.75]
+        \trianglestyles
+        \begin{scope}[yshift=0cm]
+          \fill[lightgray] (0,0) rectangle(7,1);
+          \filldraw[draw=black,vertcolor] (0.5,0) rectangle ++ (1,1);
+          \filldraw[draw=black,cellcolor] (1.5,0) rectangle ++ (1,1);
+          \filldraw[draw=black,vertcolor] (2.5,0) rectangle ++ (1,1);
+          \filldraw[draw=black,edgecolor] (3.5,0) rectangle ++ (1,1);
+          \filldraw[draw=black,edgecolor] (4.5,0) rectangle ++ (1,1);
+          \filldraw[draw=black,vertcolor] (5.5,0) rectangle ++ (1,1);
+          \node[at={(1,.5)}, ptlabel] {$v_5$};
+          \node[at={(2,.5)}, ptlabel] {$c_1$};
+          \node[at={(3,.5)}, ptlabel] {$v_4$};
+          \node[at={(4,.5)}, ptlabel] {$e_4$};
+          \node[at={(5,.5)}, ptlabel] {$e_1$};
+          \node[at={(6,.5)}, ptlabel] {$v_2$};
+          \draw (0,0) -- (7,0);
+          \draw (0,1) -- (7,1);
+        \end{scope}
+
+        \begin{scope}[yshift=-2cm]
+          \begin{scope}[xshift=1.5cm]
+            \filldraw[draw=black,cellcolor] (0,0) rectangle ++ (1,1);
+            \node[at={(0.5,.5)}, ptlabel] {$d_0$};
+
+            \draw (0,-1) -- (0,0);
+            \draw (1,-1) -- (1,0);
+          \end{scope}
+
+          \begin{scope}[xshift=3cm]
+            \filldraw[draw=black,edgecolor] (0,0) rectangle ++ (1,1);
+            \filldraw[draw=black,edgecolor] (1,0) rectangle ++ (1,1);
+            \node[at={(0.5,.5)}, ptlabel] {$d_0$};
+            \node[at={(1.5,.5)}, ptlabel] {$d_1$};
+
+            \draw (.5,-1) -- (0,0);
+            \draw (1.5,-1) -- (2,0);
+
+            % flipped arrow
+            \draw [{stealth}-{stealth},draw=red,line width=1pt] (.5,1.1) to [bend right=70] (1.5,1.1);
+          \end{scope}
+          \begin{scope}[xshift=5.5cm]
+            \filldraw[draw=black,vertcolor] (0,0) rectangle ++ (1,1);
+            \node[at={(0.5,.5)}, ptlabel] {$d_0$};
+
+            \draw (0,-1) -- (0,0);
+            \draw (1,-1) -- (1,0);
+          \end{scope}
+        \end{scope}
+
+      \end{tikzpicture}
+    \end{frame}
 
 \begin{frame}{Orientation: Raviart-Thomas}
-  % show canonical and flipped triangles
+  \centering
 
+  \begin{tikzpicture}
+    \stylesegmentstwo
+    \drawtriangle
+
+    \tkzDefBarycentricPoint(v0=1,v1=1) \tkzGetPoint{e0d0}
+    \tkzDefShiftPoint[e0d0](-90:.8){e0d0v}
+    \draw [vdof] (e0d0) -- (e0d0v);
+    \filldraw [edgedof] (e0d0) node [doftext] {2} circle [radius=7pt];
+
+    \tkzDefBarycentricPoint(v0=1,v2=1) \tkzGetPoint{e1d0}
+    \tkzDefShiftPoint[e1d0](180:.8){e1d0v}
+    \draw [vdof] (e1d0) -- (e1d0v);
+    \filldraw [edgedof] (e1d0) node [doftext] {1} circle [radius=7pt];
+
+    \tkzDefBarycentricPoint(v1=1,v2=1) \tkzGetPoint{e2d0}
+    \tkzDefShiftPoint[e2d0](225:.8){e2d0v}
+    \draw [vdof] (e2d0) -- (e2d0v);
+    \filldraw [edgedof] (e2d0) node [doftext] {0} circle [radius=7pt];
+
+    \node at (3.5,1) {vs};
+
+    % now flipped
+    \begin{scope}[xshift=5cm]
+      \drawflippedtriangle
+      \tkzDefBarycentricPoint(v0=1,v1=1) \tkzGetPoint{e0d0}
+      \tkzDefShiftPoint[e0d0](-90:.8){e0d0v}
+      \draw [vdof] (e0d0) -- (e0d0v);
+      \filldraw [edgedof] (e0d0) node [doftext] {2} circle [radius=7pt];
+
+      \tkzDefBarycentricPoint(v0=1,v2=1) \tkzGetPoint{e1d0}
+      \tkzDefShiftPoint[e1d0](180:.8){e1d0v}
+      \draw [vdof] (e1d0) -- (e1d0v);
+      \filldraw [edgedof] (e1d0) node [doftext] {1} circle [radius=7pt];
+
+      \tkzDefBarycentricPoint(v1=1,v2=1) \tkzGetPoint{e2d0}
+      \tkzDefShiftPoint[e2d0](45:.8){e2d0v}
+      \draw [vdof] (e2d0) -- (e2d0v);
+      \filldraw [edgedof] (e2d0) node [doftext] {0} circle [radius=7pt];
+    \end{scope}
+  \end{tikzpicture}
+
+  \vspace{2em}
+
+  \begin{tikzpicture}[y=-1cm,scale=.75]
+    \trianglestyles
+    \fill[lightgray] (0,0) rectangle(7,1);
+    \filldraw[draw=black,edgecolor] (0.5,0) rectangle ++ (1,1);
+    \filldraw[draw=black,edgecolor] (1.5,0) rectangle ++ (1,1);
+    \filldraw[draw=black,edgecolor] (2.5,0) rectangle ++ (1,1);
+    \filldraw[draw=black,edgecolor] (3.5,0) rectangle ++ (1,1);
+    \filldraw[draw=black,edgecolor] (4.5,0) rectangle ++ (1,1);
+    \filldraw[draw=black,edgecolor] (5.5,0) rectangle ++ (1,1);
+    \node[at={(1,.5)}, ptlabel] {$e_5$};
+    \node[at={(2,.5)}, ptlabel] {$e_9$};
+    \node[at={(3,.5)}, ptlabel] {$e_0$};
+    \node[at={(4,.5)}, ptlabel] {$e_4$};
+    \node[at={(5,.5)}, ptlabel] {$e_1$};
+    \node[at={(6,.5)}, ptlabel] {$e_2$};
+    \draw (0,0) -- (7,0);
+    \draw (0,1) -- (7,1);
+
+    % times minus 1
+    \draw [-{stealth},draw=red,shorten <=5pt,line width=1pt] (2.8,2.4) node {$(\times -\!1)$} -- (3,1.1);
+  \end{tikzpicture}
 \end{frame}
 
 \begin{frame}{Partially-structured meshes: extruded}
+  \begin{tikzpicture}[scale=.5]
+    \tkzDefPoint(0,0){v0v0}
+    \tkzDefShiftPoint[v0v0](2,0){v1v0}
+    \tkzDefShiftPoint[v1v0](2,0){v2v0}
+    \tkzDefShiftPoint[v0v0](0,2){v0v1}
+    \tkzDefShiftPoint[v1v0](0,2){v1v1}
+    \tkzDefShiftPoint[v2v0](0,2){v2v1}
+    \tkzDefShiftPoint[v0v1](0,2){v0v2}
+    \tkzDefShiftPoint[v1v1](0,2){v1v2}
+    \tkzDefShiftPoint[v2v1](0,2){v2v2}
+    \tkzDefShiftPoint[v0v2](0,2){v0v3}
+    \tkzDefShiftPoint[v1v2](0,2){v1v3}
 
+    % horiz edges
+    \tkzDrawSegments(v0v0,v1v0 v1v0,v2v0)
+    \tkzDrawSegments(v0v1,v1v1 v1v1,v2v1)
+    \tkzDrawSegments(v0v2,v1v2 v1v2,v2v2)
+    \tkzDrawSegments(v0v3,v1v3)
+
+    % vert edges
+    \tkzDrawSegments(v0v0,v0v1 v0v1,v0v2 v0v2,v0v3)
+    \tkzDrawSegments(v1v0,v1v1 v1v1,v1v2 v1v2,v1v3)
+    \tkzDrawSegments(v2v0,v2v1 v2v1,v2v2)
+
+    % verts
+    \tkzDrawPoints(v0v0,v0v1,v0v2,v0v3)
+    \tkzDrawPoints(v1v0,v1v1,v1v2,v1v3)
+    \tkzDrawPoints(v2v0,v2v1,v2v2)
+
+    % add labels
+
+    % lhs
+    \tkzDefBarycentricPoint(v0v0=1,v0v1=1) \tkzGetPoint{v0e0}
+    \tkzDefBarycentricPoint(v0v1=1,v0v2=1) \tkzGetPoint{v0e1}
+    \tkzDefBarycentricPoint(v0v2=1,v0v3=1) \tkzGetPoint{v0e2}
+
+    \node [xshift=-1.2cm] (v0v0label) at (v0v0) {$(v_0,v_0)$};
+    \node [xshift=-1.2cm] (v0v1label) at (v0v1) {$(v_0,v_1)$};
+    \node [xshift=-1.2cm] (v0v2label) at (v0v2) {$(v_0,v_2)$};
+    \node [xshift=-1.2cm] (v0v3label) at (v0v3) {$(v_0,v_3)$};
+
+    \node [xshift=-1.2cm] (v0e0label) at (v0e0) {$(v_0,e_0)$};
+    \node [xshift=-1.2cm] (v0e1label) at (v0e1) {$(v_0,e_1)$};
+    \node [xshift=-1.2cm] (v0e2label) at (v0e2) {$(v_0,e_2)$};
+
+    \draw [-{stealth},shorten >=2pt] (v0v0label) -- (v0v0);
+    \draw [-{stealth},shorten >=2pt] (v0v1label) -- (v0v1);
+    \draw [-{stealth},shorten >=2pt] (v0v2label) -- (v0v2);
+    \draw [-{stealth},shorten >=2pt] (v0v3label) -- (v0v3);
+
+    \draw [-{stealth},shorten >=2pt] (v0e0label) -- (v0e0);
+    \draw [-{stealth},shorten >=2pt] (v0e1label) -- (v0e1);
+    \draw [-{stealth},shorten >=2pt] (v0e2label) -- (v0e2);
+
+    % rhs
+    \tkzDefBarycentricPoint(v1v0=1,v2v0=1) \tkzGetPoint{e1e0}
+    \tkzDefBarycentricPoint(v1v1=1,v2v1=1) \tkzGetPoint{e1e1}
+    \tkzDefBarycentricPoint(v1v2=1,v2v2=1) \tkzGetPoint{e1e2}
+
+    \tkzDefBarycentricPoint(v1v0=1,v1v1=1,v2v0=1,v2v1=1) \tkzGetPoint{e1c0}
+    \tkzDefBarycentricPoint(v1v1=1,v1v2=1,v2v1=1,v2v2=1) \tkzGetPoint{e1c1}
+
+    \node [xshift=1.9cm,yshift=.5cm] (e1e0label) at (e1e0) {$(e_1,e_0)$};
+    \node [xshift=1.9cm,yshift=.5cm] (e1e1label) at (e1e1) {$(e_1,e_1)$};
+    \node [xshift=1.9cm,yshift=.5cm] (e1e2label) at (e1e2) {$(e_1,e_2)$};
+
+    \node [xshift=1.9cm,yshift=.5cm] (e1c0label) at (e1c0) {$(e_1,c_0)$};
+    \node [xshift=1.9cm,yshift=.5cm] (e1c1label) at (e1c1) {$(e_1,c_1)$};
+
+    \draw [-{stealth},shorten >=2pt] (e1e0label.west) -- (e1e0);
+    \draw [-{stealth},shorten >=2pt] (e1e1label.west) -- (e1e1);
+    \draw [-{stealth},shorten >=2pt] (e1e2label.west) -- (e1e2);
+
+    \draw [-{stealth},shorten >=2pt] (e1c0label.west) -- (e1c0);
+    \draw [-{stealth},shorten >=2pt] (e1c1label.west) -- (e1c1);
+
+    % bottom labels need to be included in bounding box
+    \tkzDefBarycentricPoint(v0v0=1,v1v0=1) \tkzGetPoint{e0}
+    \tkzLabelPoint[below](e0){$e_5$}
+    \tkzDefBarycentricPoint(v1v0=1,v2v0=1) \tkzGetPoint{e1}
+    \tkzLabelPoint[below](e1){$e_1$}
+
+    \tkzLabelPoint[below](v0v0){$v_0$}
+    \tkzLabelPoint[below](v1v0){$v_3$}
+    \tkzLabelPoint[below](v2v0){$v_8$}
+  \end{tikzpicture}
+
+  \centering
+
+  \quad
+
+  % and data layout
+  \begin{tikzpicture}[y=-1cm,scale=.75]
+    \trianglestyles
+    \begin{scope}[xshift=3.25cm, yshift=0cm]
+      \filldraw[draw=black,fill=white] (0,0) rectangle ++ (1,1);
+      \filldraw[draw=black,fill=white] (1,0) rectangle ++ (1,1);
+      \filldraw[draw=black,fill=white] (2,0) rectangle ++ (1,1);
+      \filldraw[draw=black,fill=white] (3,0) rectangle ++ (1,1);
+      \filldraw[draw=black,fill=white] (4,0) rectangle ++ (1,1);
+
+      \node[at={(.5,.5)}, ptlabel] {$v_0$};
+      \node[at={(1.5,.5)}, ptlabel] {$v_8$};
+      \node[at={(2.5,.5)}, ptlabel] {$e_5$};
+      \node[at={(3.5,.5)}, ptlabel] {$v_3$};
+      \node[at={(4.5,.5)}, ptlabel] {$e_1$};
+    \end{scope}
+
+    \begin{scope}[yshift=-2cm]
+      \begin{scope}[xshift=1cm]
+        \fill[lightgray] (0,0) rectangle (3.5,1);
+        \filldraw[draw=black,vertcolor] (0,0) rectangle ++ (1,1);
+        \filldraw[draw=black,edgecolor] (1,0) rectangle ++ (1,1);
+        \filldraw[draw=black,vertcolor] (2,0) rectangle ++ (1,1);
+        \node[at={(.5,.5)}, ptlabel] {$v_0$};
+        \node[at={(1.5,.5)}, ptlabel] {$e_0$};
+        \node[at={(2.5,.5)}, ptlabel] {$v_1$};
+        \draw (0,0) -- (3.5,0);
+        \draw (0,1) -- (3.5,1);
+      \end{scope}
+
+      \begin{scope}[xshift=6cm]
+        \fill[lightgray] (0,0) rectangle (3.5,1);
+        \filldraw[draw=black,edgecolor] (0,0) rectangle ++ (1,1);
+        \filldraw[draw=black,cellcolor] (1,0) rectangle ++ (1,1);
+        \filldraw[draw=black,edgecolor] (2,0) rectangle ++ (1,1);
+        \node[at={(.5,.5)}, ptlabel] {$e_0$};
+        \node[at={(1.5,.5)}, ptlabel] {$c_0$};
+        \node[at={(2.5,.5)}, ptlabel] {$e_1$};
+        \draw (0,0) -- (3.5,0);
+        \draw (0,1) -- (3.5,1);
+      \end{scope}
+    \end{scope}
+
+    \draw ({3.25+0},1) -- ({0+1},2);
+    \draw [densely dashed] ({3.25+1},1) -- ({0+4.5},2);
+    \draw ({3.25+4},1) -- ({6+0},2);
+    \draw [densely dashed] ({3.25+5},1) -- ({6+3.5},2);
+  \end{tikzpicture}
 \end{frame}
 
-\begin{frame}{Stencil library wishlist}
+\begin{frame}{\pyop3 wishlist}
   \textbf{Features:}
 
-  \checked Orientation \\
+  \checked Handle orientations \\
   \checked p-adaptivity \\
   \checked Mixed meshes \\
 
   \textbf{Performance:}
 
-  \checked Mesh partial structure \\
-  \checked Mesh numbering
+  \checked Exploit mesh partial structure \\
+  \checked Prescribe DoF ordering
 \end{frame}
-
-
-\section{Final bits}
 
 \begin{frame}{Things I missed}
-  % also lets us do map and loop composition (e.g. useful for PCPATCH)
-
-  % matrices
-  % works in parallel (MPI)
-  % should retain existing work in PyOP2 on GPUs and inter-element vectorisation
-  % lets us have structured things
-  % lets us do cool data structure things with partially structured meshes (esp. extruded)
-  % enables other performance improvements you get by modifying data layout
+  \begin{itemize}
+    \item The interface for launching computations (inc. map and loop composition)
+    \item Tight integration with PETSc (esp. DMPlex)
+    \item Support for sparse matrices
+    \item MPI parallelism
+    \item Could streamline PCPATCH and multigrid code (via composition)
+    \item Should retain \pyop2's work on GPUs and inter-element vectorisation
+    \item Additional data layout transformations/optimisations
+    \item Could potentially do a similar mesh structure trick for refined meshes
+  \end{itemize}
 \end{frame}
-
-\begin{frame}{Summary}
-
-\end{frame}
-
-% appendix
 
 \section{Appendix}
 
+\begin{frame}[fragile]{\pyop3 interface}
+  \begin{minted}{python}
+do_loop(
+  c := mesh.cells.index,
+  kernel(dat0[closure(c)], dat1[closure(c)])
+)
+  \end{minted}
+
+  \begin{minted}{python}
+do_loop(
+  f := mesh.interior_facets.index,
+  kernel(
+    dat0[closure(support(f))],
+    dat1[closure(support(f))]
+  )
+)
+  \end{minted}
+\end{frame}
+
+\begin{frame}{DMPlex 1}
+\begin{figure}
+  \centering
+  \begin{subfigure}{0.45\textwidth}
+    \begin{tikzpicture}[scale=.5]
+      \tkzDefPoint(0,2){v0}
+      \tkzDefPoint(2,4){v1}
+      \tkzDefPoint(2,0){v2}
+      \tkzDefPoint(4,2){v3}
+
+      \tkzDrawSegments(v0,v1 v0,v2 v1,v2 v1,v3 v2,v3)
+      \tkzDrawPoints(v0,v1,v2,v3)
+
+      \tkzDefBarycentricPoint(v0=1.2,v1=1,v2=1) \tkzGetPoint{c0}
+      \tkzLabelPoint[centered](c0){1}
+      \tkzDefBarycentricPoint(v1=1,v2=1,v3=1.2) \tkzGetPoint{c1}
+      \tkzLabelPoint[centered](c1){2}
+
+      \tkzLabelPoint[left](v0){3}
+      \tkzLabelPoint[above](v1){4}
+      \tkzLabelPoint[below](v2){5}
+      \tkzLabelPoint[right](v3){6}
+
+      \tkzLabelSegment[below left](v0,v2){7}
+      \tkzLabelSegment[above left](v0,v1){8}
+      \tkzLabelSegment[left](v1,v2){9}
+      \tkzLabelSegment[above right](v1,v3){10}
+      \tkzLabelSegment[below right](v2,v3){11}
+    \end{tikzpicture}
+  \end{subfigure}
+  %
+  \begin{subfigure}{0.45\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=.5]
+      \basichasse
+    \end{tikzpicture}
+  \end{subfigure}
+  \caption{
+    An example mesh and its Hasse diagram representation.
+    Note that the topological entities are numbered according to the DMPlex convention of first cells, then vertices, then faces.
+  }
+  \label{fig:hasse_diagram}
+\end{figure}
+\end{frame}
+
+\begin{frame}{DMPlex 2}
+\begin{figure}
+  \centering
+  \begin{subfigure}{0.45\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=.5]
+      \basichasse
+      \drawpolygon 7,9;
+      \draw [dashed] (1) circle [radius=15pt];
+    \end{tikzpicture}
+    \caption{$\cone(1) = \{7,8,9\}$}
+  \end{subfigure}
+  %
+  \begin{subfigure}{0.45\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=.5]
+      \basichasse
+      \drawpolygon 1,2;
+      \draw [dashed] (9) circle [radius=15pt];
+    \end{tikzpicture}
+    \caption{$\support(9) = \{1,2\}$}
+  \end{subfigure}
+  %
+  \begin{subfigure}{0.45\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=.5]
+      \basichasse
+      \drawpolygon 1,7,3,5,9;
+    \end{tikzpicture}
+    \caption{$\closure(1) = \{1,3,4,5,7,8,9\}$}
+  \end{subfigure}
+  %
+  \begin{subfigure}{0.45\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=.5]
+      \basichasse
+      \drawpolygon 4,10,2,1,8;
+    \end{tikzpicture}
+    \caption{$\plexstar(4) = \{4,8,9,10,1,2\}$}
+  \end{subfigure}
+
+  \caption{The possible DMPlex covering queries (applied to the Hasse diagram from Figure~\ref{fig:hasse_diagram}).}
+  \label{fig:plex_restrictions}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Mixed reordering}
+\begin{figure}
+  \centering
+  \begin{subfigure}{.65\textwidth}
+    \centering
+    \begin{tikzpicture}[y=-1cm,scale=.35]
+      \mixedstylesetup
+      \begin{scope}[xshift=3.25cm, yshift=0cm]
+        \filldraw[v0,draw=black] (0,0) rectangle (1,1);
+        \filldraw[v1,draw=black] (1,0) rectangle (2,1);
+        \node[at={(.5,.5)}, ptlabel] {$V_0$};
+        \node[at={(1.5,.5)}, ptlabel] {$V_1$};
+      \end{scope}
+
+      \begin{scope}[yshift=-2cm]
+        \begin{scope}[xshift=0cm]
+          \fill[lightgray] (0,0) rectangle (4,1);
+          \filldraw[draw=black, fill=white] (0.5,0) rectangle (1.5,1);
+          \filldraw[draw=black, fill=white] (1.5,0) rectangle (2.5,1);
+          \filldraw[draw=black, fill=white] (2.5,0) rectangle (3.5,1);
+          \node[at={(1,.5)}, ptlabel] {$c_0$};
+          \node[at={(2,.5)}, ptlabel] {$v_1$};
+          \node[at={(3,.5)}, ptlabel] {$c_4$};
+          \draw (0,0) -- (4,0);
+          \draw (0,1) -- (4,1);
+        \end{scope}
+
+        \begin{scope}[xshift=4.5cm]
+          \fill[lightgray] (0,0) rectangle (4,1);
+          \filldraw[draw=black, fill=white] (0.5,0) rectangle (1.5,1);
+          \filldraw[draw=black, fill=white] (1.5,0) rectangle (2.5,1);
+          \filldraw[draw=black, fill=white] (2.5,0) rectangle (3.5,1);
+          \node[at={(1,.5)}, ptlabel] {$c_0$};
+          \node[at={(2,.5)}, ptlabel] {$v_1$};
+          \node[at={(3,.5)}, ptlabel] {$c_4$};
+          \draw (0,0) -- (4,0);
+          \draw (0,1) -- (4,1);
+        \end{scope}
+      \end{scope}
+
+      \draw [densely dashed] (3.25,1) -- (0,2);
+      \draw [densely dashed] (4.25,1) -- (4,2);
+      \draw [densely dashed] (4.25,1) -- ({0+4.5},2);
+      \draw [densely dashed] (5.25,1) -- ({4+4.5},2);
+
+      \node [at={(9.5,.5)},anchor=center] {Spaces};
+      \node [at={(9.5,2.5)},anchor=center] {Points};
+    \end{tikzpicture}
+    \caption{
+      A typical data layout for a `mixed' system with the spaces $V_0$ and $V_1$ forming the `outer' axis.
+    }
+    \label{fig:mixedreorder_outer}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{.3\textwidth}
+    \centering
+    \begin{tikzpicture}[x=.8cm,y=-1cm,scale=.5]
+      \mixedstylesetup
+      \draw (0,0) .. controls (-.2,0) and (-.2,3) .. (0,3);
+      \draw (1,0) .. controls (1.2,0) and (1.2,3) .. (1,3);
+      \filldraw [v0,rounded corners,draw=none]
+        (.1,.05) -- (.9,.05) -- (.9,1.45) -- (.1,1.45) -- cycle;
+      \filldraw [v1,rounded corners,draw=none]
+        (.1,1.55) -- (.9,1.55) -- (.9,2.95) -- (.1,2.95) -- cycle;
+    \end{tikzpicture}
+    \caption{The resulting block-structured vector.}
+    \label{fig:mixedreorder_outer_vec}
+  \end{subfigure}
+
+  \vspace{1em}
+ 
+  \begin{subfigure}{.65\textwidth}
+    \centering
+    \begin{tikzpicture}[y=-1cm,scale=.35]
+      \mixedstylesetup
+      \begin{scope}[xshift=0cm,yshift=0cm]
+        \fill[lightgray] (0,0) rectangle (4,1);
+        \filldraw[draw=black, fill=white] (0.5,0) rectangle (1.5,1);
+        \filldraw[draw=black, fill=white] (1.5,0) rectangle (2.5,1);
+        \filldraw[draw=black, fill=white] (2.5,0) rectangle (3.5,1);
+        \node[at={(1,.5)}, ptlabel] {$c_0$};
+        \node[at={(2,.5)}, ptlabel] {$v_1$};
+        \node[at={(3,.5)}, ptlabel] {$c_4$};
+        \draw (0,0) -- (4,0);
+        \draw (0,1) -- (4,1);
+      \end{scope}
+
+      \begin{scope}[xshift=1cm, yshift=-2cm]
+        \filldraw[v0,draw=black] (0,0) rectangle (1,1);
+        \filldraw[v1,draw=black] (1,0) rectangle (2,1);
+        \node[at={(.5,.5)}, ptlabel] {$V_0$};
+        \node[at={(1.5,.5)}, ptlabel] {$V_1$};
+      \end{scope}
+
+      \draw (1.5,1) -- (1,2);
+      \draw (2.5,1) -- (3,2);
+
+      \node [at={(5,.5)},anchor=center] {Points};
+      \node [at={(5,2.5)},anchor=center] {Spaces};
+    \end{tikzpicture}
+    \caption{A transformed data layout where the ``Spaces" and ``Points" axes have been swapped.}
+    \label{fig:mixedreorder_inner}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{.3\textwidth}
+    \centering
+    \begin{tikzpicture}[x=.8cm,y=-1cm,scale=.5]
+      \mixedstylesetup
+      \tikzstyle{entry} = [rounded corners,draw=none];
+      \tikzstyle{blue} = [v0,entry];
+      \tikzstyle{red} = [v1,entry];
+      \draw (0,0) .. controls (-.2,0) and (-.2,3) .. (0,3);
+      \draw (1,0) .. controls (1.2,0) and (1.2,3) .. (1,3);
+      \filldraw [blue] (.1,.05) -- (.9,.05) -- (.9,.45) -- (.1,.45) -- cycle;
+      \filldraw [red] (.1,.55) -- (.9,.55) -- (.9,.95) -- (.1,.95) -- cycle;
+      \filldraw [blue] (.1,1.05) -- (.9,1.05) -- (.9,1.45) -- (.1,1.45) -- cycle;
+      \filldraw [red] (.1,1.55) -- (.9,1.55) -- (.9,1.95) -- (.1,1.95) -- cycle;
+      % \filldraw [blue] (.1,2.05) -- (.9,2.05) -- (.9,2.45) -- (.1,2.45) -- cycle;
+      % \filldraw [red] (.1,2.55) -- (.9,2.55) -- (.9,2.95) -- (.1,2.95) -- cycle;
+      % ellipsis
+      \filldraw [fill=black] (.5,2.2) circle (.5pt);
+      \filldraw [fill=black] (.5,2.5) circle (.5pt);
+      \filldraw [fill=black] (.5,2.8) circle (.5pt);
+    \end{tikzpicture}
+    \caption{The resulting interleaved vector.}
+    \label{fig:mixedreorder_inner_vec}
+  \end{subfigure}
+  \caption{
+    A possible data layout transformation for a `mixed' system permitted by \pyop3.
+    The entries $V_0$ and $V_1$ represent the spaces of the mixed system and the ``Points" axis is representative of the mesh.
+    Note that additional subaxes for, for example, nodes and \glspl{dof} would be permitted.
+  }
+  \label{fig:mixedreorder}
+\end{figure}
+\end{frame}
+
 \begin{frame}{Partially-structured meshes: refined}
+  \begin{figure}
+    \centering
+    \begin{subfigure}{\textwidth}
+      \centering
+      \begin{tikzpicture}[scale=.5]
 
+        \tkzDefPoint(0,0){v0}
+        \tkzDefShiftPoint[v0](60:4){v1}
+        \tkzDefShiftPoint[v0](0:4){v2}
+        \tkzDrawPolygon(v0,v1,v2)
+
+        \tkzDefMidPoint(v0,v1) \tkzGetPoint{e0v0}
+        \tkzDefMidPoint(v1,v2) \tkzGetPoint{e1v0}
+        \tkzDefMidPoint(v2,v0) \tkzGetPoint{e2v0}
+
+        \tkzDrawSegment(e0v0,e1v0)
+        \tkzDrawSegment(e1v0,e2v0)
+        \tkzDrawSegment(e2v0,e0v0)
+
+        \tkzDefMidPoint(e1v0,v2) \tkzGetPoint{e1e1v0}
+        \tkzDefMidPoint(v2,e2v0) \tkzGetPoint{e2e0v0}
+        \tkzDefMidPoint(e1v0,e2v0) \tkzGetPoint{c0e2v0}
+
+        \tkzDrawSegment(e1e1v0,e2e0v0)
+        \tkzDrawSegment(e2e0v0,c0e2v0)
+        \tkzDrawSegment(c0e2v0,e1e1v0)
+
+        % patch
+        \begin{pgfonlayer}{background}
+          % find points by bisecting the angles
+          \tkzDefShiftPoint[e0v0](-30:0.15){e0v0inner}
+          \tkzDefShiftPoint[e1v0](-120:0.1){e1v0inner}
+          \tkzDefShiftPoint[e1e1v0](150:0.15){e1e1v0inner}
+          \tkzDefShiftPoint[c0e2v0](120:0.1){c0e2v0inner}
+          \tkzDefShiftPoint[e2v0](90:0.15){e2v0inner}
+
+          % source: https://tikz.dev/base-paths#sec-102.12
+          \pgfsetcornersarced{\pgfpoint{1mm}{1mm}}
+          \filldraw[color=blue!20] (e0v0inner) -- (e1v0inner) -- (e1e1v0inner) -- (c0e2v0inner) -- (e2v0inner) -- cycle;
+          \pgfsetcornersarced{\pgfpointorigin}
+        \end{pgfonlayer}
+
+        % add labels
+        \tkzDefBarycentricPoint(e0v0=1,e1v0=1,e2v0=1) \tkzGetPoint{c0c1}
+        \node [xshift=-2cm,yshift=.8cm] (c0c1label) at (c0c1) {$(c_1,c_0)$};
+        \draw (c0c1label) -- (c0c1);
+
+        \tkzDefMidPoint(e1v0,c0e2v0) \tkzGetPoint{c0e2}
+        \node [xshift=2cm,yshift=.8cm] (c0e2label) at (c0e2) {$(e_2,e_0)$};
+        \draw (c0e2label) -- (c0e2);
+
+        \tkzDefBarycentricPoint(e1v0=1,e1e1v0=1,c0e2v0=1) \tkzGetPoint{c0c3c2}
+        \node [xshift=2cm,yshift=-.2cm] (c0c3c2label) at (c0c3c2) {$(c_3,c_2)$};
+        \draw (c0c3c2label) -- (c0c3c2);
+      \end{tikzpicture}
+      \caption{
+        An example of a stencil - $\plexstar((e_2,e_0))$ - over a refined mesh.
+        Note that the unrefined cell $(c_1,c_0)$ is still indexed with two indices.
+        We say that it has been refined using the identity transformation.
+      }
+      \label{fig:refined_patch}
+    \end{subfigure}
+
+    \vspace{1em}
+
+    % data layout for patch
+    \begin{subfigure}{\textwidth}
+      \centering
+      \begin{tikzpicture}[y=-1cm,scale=.5]
+        \begin{scope}[xshift=.5cm, yshift=0cm]
+          \filldraw[draw=black, fill=white] (0,0) rectangle ++ (1,1);
+          \filldraw[draw=black, fill=blue!20] (1,0) rectangle ++ (1,1);
+          \filldraw[draw=black, fill=white] (2,0) rectangle ++ (1,1);
+          \filldraw[draw=black, fill=blue!20] (3,0) rectangle ++ (1,1);
+          \filldraw[draw=black, fill=white] (4,0) rectangle ++ (1,1);
+          \filldraw[draw=black, fill=blue!20] (5,0) rectangle ++ (1,1);
+          \filldraw[draw=black, fill=white] (6,0) rectangle ++ (1,1);
+          \node[at={(.5,.5)}, ptlabel] {$c_0$};
+          \node[at={(1.5,.5)}, ptlabel] {$c_3$};
+          \node[at={(2.5,.5)}, ptlabel] {$e_0$};
+          \node[at={(3.5,.5)}, ptlabel] {$c_1$};
+          \node[at={(4.5,.5)}, ptlabel] {$c_2$};
+          \node[at={(5.5,.5)}, ptlabel] {$e_2$};
+          \node[at={(6.5,.5)}, ptlabel] {$e_1$};
+
+          % \draw[->] (2.8,-1) .. controls ([yshift=-.4cm] 2.6,-1) and ([yshift=.6cm] 1,0) .. (.8,0);
+          % \draw[->] (3,-1) .. controls ([yshift=-.6cm] 3,-1) and ([yshift=1cm] 3.5,0) .. (3.5,0);
+          % \draw[->] (3.2,-1) .. controls ([yshift=-.4cm] 3,-1) and ([yshift=.6cm] 6,0) .. (6.2,0);
+        \end{scope}
+
+        \begin{scope}[xshift=0cm, yshift=-2cm]
+          % c3
+          \begin{scope}[xshift=-1cm]
+            \fill[lightgray] (0,0) rectangle (4,1);
+            \filldraw[draw=black, fill=white] (.5,0) rectangle ++ (1,1);
+            \filldraw[draw=black, fill=blue!20] (1.5,0) rectangle ++ (1,1);
+            \filldraw[draw=black, fill=white] (2.5,0) rectangle ++ (1,1);
+            \node[at={(1,.5)}, ptlabel] {$c_1$};
+            \node[at={(2,.5)}, ptlabel] {$c_2$};
+            \node[at={(3,.5)}, ptlabel] {$c_3$};
+            \draw (0,0) -- (4,0);
+            \draw (0,1) -- (4,1);
+            % \draw[->] (4,-1) .. controls ([yshift=-.7cm] 4,-1) and ([yshift=1cm] 2,0) .. (2,0);
+          \end{scope}
+
+          % c1c0
+          \begin{scope}[xshift=3.5cm]
+            \filldraw[draw=black, fill=blue!20] (0,0) rectangle ++ (1,1);
+            \node[at={(.5,.5)}, ptlabel] {$c_0$};
+          \end{scope}
+
+          % e2
+          \begin{scope}[xshift=5cm]
+            \filldraw[draw=black, fill=blue!20] (0,0) rectangle ++ (1,1);
+            \filldraw[draw=black, fill=white] (1,0) rectangle ++ (1,1);
+            \filldraw[draw=black, fill=white] (2,0) rectangle ++ (1,1);
+            \node[at={(.5,.5)}, ptlabel] {$e_0$};
+            \node[at={(1.5,.5)}, ptlabel] {$e_1$};
+            \node[at={(2.5,.5)}, ptlabel] {$v_0$};
+            % \draw[->] (2,-1) .. controls ([yshift=-.7cm] 2,-1) and ([yshift=1cm] .5,0) .. (.5,0);
+          \end{scope}
+        \end{scope}
+
+        \draw [densely dashed] ({1+.5},1) -- ({0-1},2);
+        \draw [densely dashed] ({2+.5},1) -- ({4-1},2);
+
+        \draw ({3+.5},1) -- ({0+3.5},2);
+        \draw ({4+.5},1) -- ({1+3.5},2);
+
+        \draw ({5+.5},1) -- ({0+5},2);
+        \draw ({6+.5},1) -- ({3+5},2);
+      \end{tikzpicture}
+      \caption{
+        Example data layout for the refined mesh shown above.
+        Note that the base mesh in unstructured which is why the top axis is unordered.
+      }
+      \label{fig:refined_data}
+    \end{subfigure}
+    \caption{Example data layout and stencil for a refined mesh.}
+    \label{fig:refined_patch_and_data}
+  \end{figure}
 \end{frame}
 
-\begin{frame}{Axis swapping}
+\begin{frame}[fragile]{PCPATCH}
+  \begin{minted}[fontsize=\tiny]{python}
+loop(v := mesh.vertices.index, [
+  loop(p := star(v).index, [
+    assemble_jacobian(dat1[closure(p)], dat2[closure(p)], "mat"),
+    assemble_residual(dat3[closure(p)], "vec"),
+  ]),
+  solve_and_update("mat", "vec", dat4[v]),
+])
+\end{minted}
 
 \end{frame}
-
-% \begin{frame}
-%   \frametitle{PyOP2}
-%
-%   \large
-%   \textit{PyOP2 is a framework for automating mesh-based computations.}
-%   \normalsize
-%
-%   \begin{itemize}
-%     \item
-%       \textit{``automating"} means \textit{"using code generation"}
-%     \item
-%       \textit{``mesh-based computations"} = \textit{Next slide...}
-%     \item
-%       Integral\footnote{Pun intended.} part of the Firedrake finite element system.
-%     \item
-%       Support for iteration over extruded meshes (discussed later).
-%   \end{itemize}
-% \end{frame}
-%
-% \begin{frame}
-%   \frametitle{``Mesh-based computations"}
-%
-%   \begin{enumerate}
-%     \item Loop over a set of mesh entities (e.g. cells).
-%     \item Gather (pack) local data\footnote{e.g. ``all DoFs contained within the cell's closure"} from global data structure(s) into temporary array(s).
-%     \item Execute a local computation on this packed data.
-%     \item Scatter (unpack) the result of the local computation back into some global object.
-%   \end{enumerate}
-% \end{frame}
-%
-% \begin{frame}
-%   \frametitle{DMPlex}
-%
-%   \begin{itemize}
-%     \item
-%       PETSc's unstructured mesh topology abstraction.
-%     \item
-%       Dimension-independent.
-%   \end{itemize}
-%
-%   \begin{figure}
-%     \centering
-%     \begin{subfigure}[b]{0.6\textwidth}
-%       \centering
-%       \includegraphics[width=\textwidth]{hasse}
-%     \end{subfigure}
-%     \\
-%     \begin{subfigure}[b]{0.3\textwidth}
-%       \centering
-%       \includegraphics[width=\textwidth]{closure}
-%     \end{subfigure}
-%     \begin{subfigure}[b]{0.3\textwidth}
-%       \centering
-%       \includegraphics[width=\textwidth]{star}
-%     \end{subfigure}
-%     \caption{Source: Lange et al. (2016)}
-%   \end{figure}
-% \end{frame}
-%
-% \section{What I'm doing}
-%
-% \begin{frame}
-%   \frametitle{\texttt{pyop3}}
-%
-%   \texttt{pyop3} is a total rewrite of PyOP2 that\dots
-%
-%   \begin{itemize}
-%     \item Has improved composability (e.g. nested loops, map composition, multiple kernels)
-%     \item Facilitates some performance optimisations (e.g. loop tiling, loop fusion, data layout transformations)\footnote{Not yet implemented.}
-%     \item \textbf{Can generate fast code for a wide variety of composed meshes}
-%   \end{itemize}
-% \end{frame}
-%
-% \begin{frame}[containsverbatim]
-%   \frametitle{pyop3 interface}
-%
-%   \tiny
-%   \begin{minted}{python}
-% # cell assembly
-% loop(c := mesh.cells.index, kernel(dat1[closure(c)], dat2[closure(c)]))
-%
-% # interior facet assembly
-% loop(f := mesh.interior_facets.index, [
-%   kernel(dat1[closure(support(f))], dat2[closure(support(f))])
-% ])
-%
-% # patches
-% loop(v := mesh.verts.index, [
-%   loop(p := star(v), kernel(dat1[closure(p)], dat2[closure(p)])),
-%   ...
-% ])
-%   \end{minted}
-% \end{frame}
-%
-% \begin{frame}
-%   \frametitle{What does ``fast code" mean?}
-%
-%   \begin{itemize}
-%     \item
-%       Accessing data on unstructured meshes is slower than for structured since we need to use indirection maps (i.e. \mintinline{c}{dat[map[i]]} instead of \mintinline{c}{dat[f(i)]}).
-%     \item
-%     There are circumstances where one can have meshes with structured and unstructured bits (a.k.a. a \textit{composed} mesh).
-%     \item
-%       We want to be able to generate code that uses direct addressing for the structured parts and indirection maps for the unstructured parts.
-%   \end{itemize}
-% \end{frame}
-%
-% \begin{frame}
-%   \frametitle{Some example meshes: extruded}
-%
-%   \begin{itemize}
-%     \item
-%       Tensor product of an unstructured base mesh with a 1D interval mesh (structured).
-%     \item
-%       Iteration up columns is fast.
-%     \item
-%       Hackily supported in PyOP2.
-%   \end{itemize}
-%
-%   \begin{figure}[b]
-%     \includegraphics[width=0.7\textwidth]{extruded}
-%     \caption{Extruding a sphere (source: firedrakeproject.org).}
-%   \end{figure}
-% \end{frame}
-%
-% \begin{frame}
-%   \frametitle{Some example meshes: cubed-sphere}
-%
-%   \begin{itemize}
-%     \item
-%       Mesh made of 6 structured panels stuck together at the boundaries.
-%     \item
-%       Looping over the panels is fast.
-%   \end{itemize}
-%
-%   \begin{figure}[b]
-%     \includegraphics[width=0.45\textwidth]{cubedsphere}
-%     \caption{Source: catlikecoding.com}
-%   \end{figure}
-% \end{frame}
-%
-% \begin{frame}
-%   \frametitle{Some more examples}
-%
-%   \begin{itemize}
-%     \item Block-structured\footnote{I \textit{think} this is the correct term.} (e.g. aerofoils)
-%     \item Hybrid
-%     \item \textbf{Multigrid?}
-%   \end{itemize}
-% \end{frame}
-%
-% \begin{frame}[containsverbatim]
-%   \frametitle{Example generated code}
-%
-%   \tiny
-%
-%   The pyop3 code:
-%
-%   \begin{minted}{python}
-% loop(
-%   c := extruded_mesh.cells.index,
-%   [
-%     mylocalkernel(dat1[cone(c)], dat2[c])
-%   ]
-% )
-%   \end{minted}
-%
-%   gets turned into:
-%
-%   \begin{minted}{c}
-% double t0[16];
-% double t1[1];
-%
-% for (int32_t i0 = 0; i0 < ncells; ++i0)  // loop over base cells
-%   for (int32_t i1 = 0; i1 < nlayers; ++i1)  // loop up column
-%   {
-%     for (int32_t i2 = 0; i2 < 3; ++i2)  // loop over cone of base mesh (triangles)
-%       for (int32_t i3 = 0; i3 < 2; ++i3)  // loop over cone of interval mesh
-%         for (int32_t i4 = 0; i4 < ndofs; ++i4)  // loop over DoFs
-%           t0[4 * i2 + 2 * i3 + i4] = dat1[
-%             (map0[3 * i0 + i2] * nlayers  // base cone
-%             + f(i1, i3)]) * ndofs  // interval cone (no map needed!)
-%             + i4  // DoFs
-%           ];
-%     t1[0] = 0.0;  // initialise output to zero
-%     mylocalkernel(&(t0[0]), &(t1[0]));  // local computation
-%     dat2[i0 * nlayers + i1] = t1[0];  // write to output
-%   \end{minted}
-% \end{frame}
-%
-% \begin{frame}
-%   \frametitle{Being rigorous}
-%
-%   \begin{itemize}
-%     \item
-%       We want a nice way to describe these sorts of composed meshes such that the code generation can exploit any structure.
-%     \item
-%       We, possibly erroneously, think that they might form a \textit{ring}.
-%       In other words, this would mean that one could \textit{add} and \textit{multiply} meshes with one another.
-%     \item
-%       For example, an extruded mesh is clearly the product of some base mesh with an interval.
-%   \end{itemize}
-% \end{frame}
-%
-% \begin{frame}
-%   \frametitle{My questions}
-%
-%   \begin{itemize}
-%     \item
-%       Is there a unified way to describe these types of mesh composition?
-%     \item
-%       How do we propagate structural information such that I can generate code to exploit it?
-%     \item
-%       Does any of the code I write belong in PETSc instead of pyop3?
-%   \end{itemize}
-% \end{frame}
 
 \end{document}
